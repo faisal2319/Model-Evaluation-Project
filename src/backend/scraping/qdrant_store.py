@@ -4,15 +4,18 @@ from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 import qdrant_client
 from urllib.parse import urljoin
+from dotenv import load_dotenv
 
-os.environ['QDRANT_HOST'] = "https://b9bef3e0-9bba-4f16-a5b3-1788e8b8181b.europe-west3-0.gcp.cloud.qdrant.io"
-os.environ['QDRANT_API_KEY'] = "KaDpGXhHnkaAhZLE-yLhNQeqr3fR3kxD9ITb_esiRoBKAM4nqUfsTw"
+load_dotenv()
+
+QDRANT_HOST = os.getenv('QDRANT_HOST')
+QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
+QDRANT_COLLECTION_NAME = os.getenv('QDRANT_COLLECTION_NAME')
+
 client = qdrant_client.QdrantClient(
-    os.getenv("QDRANT_HOST"),
-    api_key=os.getenv("QDRANT_API_KEY")
+    url=QDRANT_HOST,
+    api_key=QDRANT_API_KEY
 )
-
-os.environ['QDRANT_COLLECTION_NAME'] = 'scrape_data'
 
 vectors_config = qdrant_client.http.models.VectorParams(
     size=384,  
@@ -20,10 +23,11 @@ vectors_config = qdrant_client.http.models.VectorParams(
 )
 
 client.recreate_collection(
-    collection_name=os.getenv('QDRANT_COLLECTION_NAME'),
+    collection_name=QDRANT_COLLECTION_NAME,
     vectors_config=vectors_config
 )
 
+# Initialize Sentence Transformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def scrape_url(url, visited):
@@ -61,7 +65,7 @@ all_texts = scrape_url(main_url, visited_urls)
 for i, text in enumerate(all_texts):
     vector = model.encode(text).tolist() 
     client.upsert(
-        collection_name=os.getenv('QDRANT_COLLECTION_NAME'),
+        collection_name=QDRANT_COLLECTION_NAME,
         points=[
             qdrant_client.http.models.PointStruct(
                 id=i,  
